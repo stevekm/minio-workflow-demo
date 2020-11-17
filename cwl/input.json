@@ -1,0 +1,7 @@
+{
+    "input_file":{
+        "class": "File",
+        "path": "http://127.0.0.1:9000/bucket1/files/Run1/Project_1/Sample_ABC/ABC.txt"
+    },
+    "output_filename": "ABC.copy.txt"
+}

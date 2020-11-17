@@ -1,0 +1,6 @@
+mc
+minio
+conda
+data/
+.DS_Store
+cwl/output/
