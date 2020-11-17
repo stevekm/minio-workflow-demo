@@ -104,6 +104,8 @@ Metadata  :
   Content-Type       : text/plain
 ```
 
+Notably, you can see the custom metadata we have attached to each file under the keys `X-Amz-Meta-Run`, `X-Amz-Meta-Project`, and `X-Amz-Meta-Sample`.
+
 # Workflows
 
 ## CWL
