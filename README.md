@@ -165,6 +165,10 @@ run     Run1
 
 # Resources
 
+MinIO repo
+
+- https://github.com/minio/minio
+
 Official docs for MinIO server and client
 
 - https://docs.min.io/docs/minio-quickstart-guide.html
