@@ -2,6 +2,8 @@
 
 Demo for using [MinIO](https://min.io/) object store with Nextflow and CWL workflows.
 
+This demo shows how to import files from the filesystem into MinIO with custom metadata, then use those files as inputs in CWL and Nextflow workflows.
+
 The included `Makefile` contains the commands used in the demonstration, along with the system environment configurations needed to run them more easily. See the `Makefile` contents for the exact commands being used at each step.
 
 # Usage
