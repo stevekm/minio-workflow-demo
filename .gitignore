@@ -4,3 +4,8 @@ conda
 data/
 .DS_Store
 cwl/output/
+nextflow/.nextflow.log*
+nextflow/.nextflow/
+nextflow/output/*
+nextflow/nextflow
+nextflow/work/*
