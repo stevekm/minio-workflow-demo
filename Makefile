@@ -1,6 +1,6 @@
 SHELL:=/bin/bash
 UNAME:=$(shell uname)
-export PATH:=$(CURDIR)/conda/bin:$(PATH)
+export PATH:=$(CURDIR):$(CURDIR)/conda/bin:$(PATH)
 unexport PYTHONPATH
 unexport PYTHONHOME
 
@@ -33,7 +33,7 @@ mc:
 	wget "$(MC_URL)" && \
 	chmod +x mc
 
-install: minio conda
+install: minio mc conda
 	pip install \
 	cwltool==2.0.20200126090152 \
 	cwlref-runner==1.0
@@ -45,13 +45,13 @@ MINIO_HOSTNAME:=myminio
 MINIO_BUCKET:=bucket1
 
 alias:
-	./mc alias set "$(MINIO_HOSTNAME)" http://127.0.0.1:9000 minioadmin minioadmin
+	mc alias set "$(MINIO_HOSTNAME)" http://127.0.0.1:9000 minioadmin minioadmin
 
 bucket:
-	./mc mb "$(MINIO_HOSTNAME)/$(MINIO_BUCKET)"
+	mc mb "$(MINIO_HOSTNAME)/$(MINIO_BUCKET)"
 
 policy:
-	./mc policy set public "$(MINIO_HOSTNAME)/$(MINIO_BUCKET)"
+	mc policy set public "$(MINIO_HOSTNAME)/$(MINIO_BUCKET)"
 
 FILES_DIR:=files
 import-files:
@@ -59,19 +59,19 @@ import-files:
 	sample=$$(grep 'sample' $$filepath | cut -f2); \
 	project=$$(grep 'project' $$filepath | cut -f2); \
 	run=$$(grep 'run' $$filepath | cut -f2); \
-	./mc cp \
+	mc cp \
 	--attr "sample=$$sample;project=$$project;run=$$run" \
 	"$$filepath" "$(MINIO_HOSTNAME)/$(MINIO_BUCKET)/$$filepath" ; \
 	done
 
 list-files:
-	./mc ls --recursive "$(MINIO_HOSTNAME)/$(MINIO_BUCKET)"
+	mc ls --recursive "$(MINIO_HOSTNAME)/$(MINIO_BUCKET)"
 
 stat-files:
-	./mc stat --recursive "$(MINIO_HOSTNAME)/$(MINIO_BUCKET)"
+	mc stat --recursive "$(MINIO_HOSTNAME)/$(MINIO_BUCKET)"
 
 remove-files:
-	./mc rm --recursive --force "$(MINIO_HOSTNAME)/$(MINIO_BUCKET)"
+	mc rm --recursive --force "$(MINIO_HOSTNAME)/$(MINIO_BUCKET)"
 
 setup: alias bucket import-files policy
 
@@ -80,7 +80,7 @@ setup: alias bucket import-files policy
 # ~~~~~ Start the MinIO server; run this in a separate terminal session ~~~~~ #
 SERVER_DIR:=./data
 runserver:
-	./minio server "$(SERVER_DIR)"
+	minio server "$(SERVER_DIR)"
 
 
 

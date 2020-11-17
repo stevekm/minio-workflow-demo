@@ -8,6 +8,7 @@ export NXF_VER:=20.07.1
 install: ./nextflow
 
 run:
+	if module avail java/jdk1.8.0_202 1&>/dev/null; then module load java/jdk1.8.0_202; fi
 	nextflow run main.nf
 
 clean:
