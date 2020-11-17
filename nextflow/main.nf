@@ -20,7 +20,7 @@ workflow {
     files = Channel.from([
         'http://127.0.0.1:9000/bucket1/files/Run1/Project_1/Sample_ABC/ABC.txt',
         'http://127.0.0.1:9000/bucket1/files/Run2/Project_2/Sample_DEF/DEF.txt',
-        'http://127.0.0.1:9000/bucket1/files/Run3/Project_3/Sample_GHI/GHI.txt'
+        's3://bucket1/files/Run3/Project_3/Sample_GHI/GHI.txt' // uses AWS settings in nextflow.config
         ])
 
     copy_file(files)
