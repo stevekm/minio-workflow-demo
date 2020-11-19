@@ -165,7 +165,7 @@ project Project_1
 run     Run1
 ```
 
-# Resources
+# Resources & Links
 
 MinIO repo
 
@@ -180,3 +180,9 @@ Official docs for MinIO server and client
 Usage of AWS S3 protocol with Nextflow
 
 - https://www.nextflow.io/docs/latest/amazons3.html
+
+MinIO iRODS Gateway
+
+- https://github.com/bioteam/minio-irods-gateway
+
+- https://bioteam.net/2018/07/exposing-your-irods-zone-as-aws-s3-object-storage/
