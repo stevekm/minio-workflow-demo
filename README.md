@@ -186,3 +186,5 @@ MinIO iRODS Gateway
 - https://github.com/bioteam/minio-irods-gateway
 
 - https://bioteam.net/2018/07/exposing-your-irods-zone-as-aws-s3-object-storage/
+
+- https://github.com/s3fs-fuse/s3fs-fuse
