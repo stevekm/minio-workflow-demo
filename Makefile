@@ -35,23 +35,45 @@ mc:
 
 install: minio mc conda
 	pip install \
-	cwltool==2.0.20200126090152 \
-	cwlref-runner==1.0
-
-
+	cwltool==3.0.20201203173111 \
+	cwlref-runner==1.0 \
+	toil[all]==5.0.0 \
+	awscli==1.18.194
 
 # ~~~~~ MinIO Server Setup ~~~~~ #
 MINIO_HOSTNAME:=myminio
-MINIO_BUCKET:=bucket1
-
+MINIO_BUCKET1:=bucket1
+MINIO_BUCKET2:=bucket2
+MINIO_USER:=user1
+MINIO_USER_PASSWORD:=password1234
+MINIO_GROUP:=group1
+MINIO_POLICYFILE:=bucket-readwrite.json
+MINIO_POLICYNAME:=bucket-access
+export MINIO_PORT:=9010
+export MINIO_ADDRESS:=127.0.0.1:$(MINIO_PORT)
+export MINIO_URL:=http://$(MINIO_ADDRESS)
+export MINIO_ACCESS_KEY:=minioadmin
+export MINIO_SECRET_KEY:=minioadmin
+# set the mc alias for the minio server
 alias:
-	mc alias set "$(MINIO_HOSTNAME)" http://127.0.0.1:9000 minioadmin minioadmin
+	mc alias set "$(MINIO_HOSTNAME)" "$(MINIO_URL)" "$(MINIO_ACCESS_KEY)" "$(MINIO_SECRET_KEY)"
 
+# set up two buckets
 bucket:
-	mc mb "$(MINIO_HOSTNAME)/$(MINIO_BUCKET)"
+	mc mb "$(MINIO_HOSTNAME)/$(MINIO_BUCKET1)"
+	mc mb "$(MINIO_HOSTNAME)/$(MINIO_BUCKET2)"
 
+# make one bucket public for http access
 policy:
-	mc policy set public "$(MINIO_HOSTNAME)/$(MINIO_BUCKET)"
+	mc policy set public "$(MINIO_HOSTNAME)/$(MINIO_BUCKET1)"
+
+# add users and groups and give them access to bucket2
+user-groups:
+	mc admin user add "$(MINIO_HOSTNAME)" "$(MINIO_USER)" "$(MINIO_USER_PASSWORD)"
+	mc admin group add "$(MINIO_HOSTNAME)" "$(MINIO_GROUP)" "$(MINIO_USER)"
+	mc admin policy add "$(MINIO_HOSTNAME)" "$(MINIO_POLICYNAME)" "$(MINIO_POLICYFILE)"
+	mc admin policy set "$(MINIO_HOSTNAME)" "$(MINIO_POLICYNAME)" "group=$(MINIO_GROUP)"
+	mc admin group info "$(MINIO_HOSTNAME)" "$(MINIO_GROUP)"
 
 FILES_DIR:=files
 import-files:
@@ -61,38 +83,52 @@ import-files:
 	run=$$(grep 'run' $$filepath | cut -f2); \
 	mc cp \
 	--attr "sample=$$sample;project=$$project;run=$$run" \
-	"$$filepath" "$(MINIO_HOSTNAME)/$(MINIO_BUCKET)/$$filepath" ; \
+	"$$filepath" "$(MINIO_HOSTNAME)/$(MINIO_BUCKET1)/$$filepath" ; \
+	mc cp \
+	--attr "sample=$$sample;project=$$project;run=$$run" \
+	"$$filepath" "$(MINIO_HOSTNAME)/$(MINIO_BUCKET2)/$$filepath" ; \
 	done
 
 list-files:
-	mc ls --recursive "$(MINIO_HOSTNAME)/$(MINIO_BUCKET)"
+	mc ls --recursive "$(MINIO_HOSTNAME)/$(MINIO_BUCKET1)"
 
 stat-files:
-	mc stat --recursive "$(MINIO_HOSTNAME)/$(MINIO_BUCKET)"
+	mc stat --recursive "$(MINIO_HOSTNAME)/$(MINIO_BUCKET1)"
 
 remove-files:
-	mc rm --recursive --force "$(MINIO_HOSTNAME)/$(MINIO_BUCKET)"
+	mc rm --recursive --force "$(MINIO_HOSTNAME)/$(MINIO_BUCKET1)"
 
-setup: alias bucket import-files policy
+setup: alias bucket user-groups policy import-files
 
 
 
 # ~~~~~ Start the MinIO server; run this in a separate terminal session ~~~~~ #
 SERVER_DIR:=./data
-runserver:
-	minio server "$(SERVER_DIR)"
+server:
+	minio server --address "$(MINIO_ADDRESS)" "$(SERVER_DIR)"
 
 
 
 # ~~~~~ Run the CWL workflow ~~~~~ #
+CWL_DIR:=$(CURDIR)/cwl
+WORK_DIR:=$(CWL_DIR)/work
+CWL_OUTPUT:=$(CWL_DIR)/output
+$(WORK_DIR):
+	mkdir -p "$(WORK_DIR)"
 run-cwl:
 	cwltool \
-	--outdir cwl/output \
+	--outdir "$(CWL_OUTPUT)" \
 	cwl/job.cwl cwl/input.json
 
 clean-cwl:
-	rm -rf cwl/output
+	rm -rf "$(CWL_OUTPUT)"
+	rm -rf "$(WORK_DIR)"
 
+run-toil: $(WORK_DIR)
+	toil-cwl-runner --workDir "$(WORK_DIR)" --outdir "$(CWL_OUTPUT)" cwl/job.cwl cwl/input.json
+
+run-toil-s3: $(WORK_DIR)
+	toil-cwl-runner --workDir "$(WORK_DIR)" --outdir "$(CWL_OUTPUT)" cwl/job.cwl cwl/input.s3.json
 
 # interactive session with environment updated
 bash:

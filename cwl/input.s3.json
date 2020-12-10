@@ -1,0 +1,7 @@
+{
+    "input_file":{
+        "class": "File",
+        "path": "s3://bucket1/files/Run3/Project_3/Sample_GHI/GHI.txt"
+    },
+    "output_filename": "GHI.copy.txt"
+}
