@@ -8,13 +8,13 @@ unexport PYTHONHOME
 # versions for Mac or Linux
 ifeq ($(UNAME), Darwin)
 CONDASH:=Miniconda3-4.7.12.1-MacOSX-x86_64.sh
-MINIO_URL:=https://dl.min.io/server/minio/release/darwin-amd64/minio
+MINIO_BIN_URL:=https://dl.min.io/server/minio/release/darwin-amd64/minio
 MC_URL:=https://dl.min.io/client/mc/release/darwin-amd64/mc
 endif
 
 ifeq ($(UNAME), Linux)
 CONDASH:=Miniconda3-4.7.12.1-Linux-x86_64.sh
-MINIO_URL:=https://dl.min.io/server/minio/release/linux-amd64/minio
+MINIO_BIN_URL:=https://dl.min.io/server/minio/release/linux-amd64/minio
 MC_URL:=https://dl.min.io/client/mc/release/linux-amd64/mc
 endif
 
@@ -26,7 +26,7 @@ conda:
 	rm -f "$(CONDASH)"
 
 minio:
-	wget "$(MINIO_URL)" && \
+	wget "$(MINIO_BIN_URL)" && \
 	chmod +x minio
 
 mc:
@@ -89,6 +89,10 @@ import-files:
 	"$$filepath" "$(MINIO_HOSTNAME)/$(MINIO_BUCKET2)/$$filepath" ; \
 	done
 
+setup: alias bucket user-groups policy import-files
+
+
+# example usages
 list-files:
 	mc ls --recursive "$(MINIO_HOSTNAME)/$(MINIO_BUCKET1)"
 
@@ -98,9 +102,19 @@ stat-files:
 remove-files:
 	mc rm --recursive --force "$(MINIO_HOSTNAME)/$(MINIO_BUCKET1)"
 
-setup: alias bucket user-groups policy import-files
+# create an archived file, import it, then pass its contents to gunzip
+gunzip:
+	[ -f foo.txt.gz ] && rm -f foo.txt.gz || :
+	echo "this will be archived" > foo.txt
+	gzip foo.txt
+	mc cp foo.txt.gz "$(MINIO_HOSTNAME)/$(MINIO_BUCKET1)"/foo.txt.gz
+	mc cat "$(MINIO_HOSTNAME)/$(MINIO_BUCKET1)/foo.txt.gz" | gunzip
 
-
+# stream the file object contents to a local program
+paste:
+	paste \
+	<(mc cat $(MINIO_HOSTNAME)/$(MINIO_BUCKET1)/files/Run1/Project_1/Sample_ABC/ABC.txt) \
+	<(mc cat $(MINIO_HOSTNAME)/$(MINIO_BUCKET1)/files/Run3/Project_3/Sample_GHI/GHI.txt)
 
 # ~~~~~ Start the MinIO server; run this in a separate terminal session ~~~~~ #
 SERVER_DIR:=./data
@@ -134,6 +148,9 @@ run-toil: $(WORK_DIR)
 # aws_access_key_id = user1
 # aws_secret_access_key = password1234
 # $ aws s3 ls bucket1 --endpoint-url http://127.0.0.1:9010
+export BOTO3_ENDPOINT_URL:=$(MINIO_URL)
+export AWS_ACCESS_KEY_ID:=$(MINIO_USER)
+export AWS_SECRET_ACCESS_KEY:=$(MINIO_USER_PASSWORD)
 run-toil-s3: $(WORK_DIR)
 	toil-cwl-runner --workDir "$(WORK_DIR)" --outdir "$(CWL_OUTPUT)" cwl/job.cwl cwl/input.s3.json
 
