@@ -124,9 +124,16 @@ clean-cwl:
 	rm -rf "$(CWL_OUTPUT)"
 	rm -rf "$(WORK_DIR)"
 
+# Run with Toil
 run-toil: $(WORK_DIR)
 	toil-cwl-runner --workDir "$(WORK_DIR)" --outdir "$(CWL_OUTPUT)" cwl/job.cwl cwl/input.json
 
+# NOTE: Need to run `aws configure` first to set access key and secret key configs in ~/.aws
+# $ cat ~/.aws/credentials
+# [default]
+# aws_access_key_id = user1
+# aws_secret_access_key = password1234
+# $ aws s3 ls bucket1 --endpoint-url http://127.0.0.1:9010
 run-toil-s3: $(WORK_DIR)
 	toil-cwl-runner --workDir "$(WORK_DIR)" --outdir "$(CWL_OUTPUT)" cwl/job.cwl cwl/input.s3.json
 
