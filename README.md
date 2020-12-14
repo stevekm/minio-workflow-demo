@@ -21,21 +21,18 @@ make install
 In a separate terminal session, start the MinIO server and leave it running with;
 
 ```
-make runserver
+make server
 ```
 
 You will see a message in your console that looks like this;
 
 ```
-Endpoint:  http://x.x.x.x:9000  http://192.168.x.x:9000  http://127.0.0.1:9000
+Endpoint:  http://127.0.0.1:9010
 AccessKey: minioadmin
 SecretKey: minioadmin
 
 Browser Access:
-   http://x.x.x.x:9000  http://192.168.x.x:9000  http://127.0.0.1:9000
-
-Command-line Access: https://docs.min.io/docs/minio-client-quickstart-guide
-  $ mc alias set myminio http://x.x.x.x:9000 minioadmin minioadmin
+   http://127.0.0.1:9010
 ```
 
 For demonstration purposes, we will use the default access keys and URL's provided.
@@ -50,9 +47,11 @@ This will
 
 - add an alias for the `mc` MinIO client to use this default server as `myminio` (credentials stored under `~/.mc`)
 
-- create a new bucket on the server labeled `bucket1`
+- create new buckets on the server labeled `bucket1` and `bucket2`
 
-- set the bucket for public access so our workflows can use the files more easily
+- create user `user1` and user group `group1` on the MinIO server
+
+- set the bucket access policies for `bucket1` and `bucket2` to be accessible by `user1`
 
 - import a number of dummy files provided in the `files` directory of this repo, each with custom metadata tags defined in the file contents
 
@@ -118,7 +117,7 @@ The included CWL workflow can be run from this directory with the recipe
 make run-cwl
 ```
 
-This workflow simply copies a file defined in `cwl/input.json` to the output location `cwl/output`. Notably, the file defined as input is a URL pointing to the file object stored in the MinIO server (`http://127.0.0.1:9000/bucket1/files/Run1/Project_1/Sample_ABC/ABC.txt`).
+This workflow simply copies a file defined in `cwl/input.json` to the output location `cwl/output`. Notably, the file defined as input is a URL pointing to the file object stored in the MinIO server (`http://127.0.0.1:9010/bucket1/files/Run1/Project_1/Sample_ABC/ABC.txt`).
 
 If it ran succesfully, you will be able to see the copied file at that location;
 
@@ -163,6 +162,34 @@ $ cat output/ABC.txt.copy.txt
 sample  Sample_ABC
 project Project_1
 run     Run1
+```
+
+# Extras
+
+Examples usages of files stored in MinIO;
+
+- pipe file object contents to local program via stdin
+
+```
+make gunzip
+```
+
+- use shell redirection to stream contents of multiple file objects to local program
+
+```
+make paste
+```
+
+- access the contents of the object store via the `boto` and `boto3` Python libraries
+
+```
+make boto-script
+```
+
+- access the contents of the MinIO object store via the S3-compatible AWS CLI
+
+```
+make awscli
 ```
 
 # Resources & Links

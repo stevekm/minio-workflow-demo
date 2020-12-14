@@ -9,3 +9,4 @@ nextflow/.nextflow/
 nextflow/output/*
 nextflow/nextflow
 nextflow/work/*
+foo.txt.gz

@@ -50,7 +50,8 @@ MINIO_GROUP:=group1
 MINIO_POLICYFILE:=bucket-readwrite.json
 MINIO_POLICYNAME:=bucket-access
 export MINIO_PORT:=9010
-export MINIO_ADDRESS:=127.0.0.1:$(MINIO_PORT)
+export MINIO_IP:=127.0.0.1
+export MINIO_ADDRESS:=$(MINIO_IP):$(MINIO_PORT)
 export MINIO_URL:=http://$(MINIO_ADDRESS)
 export MINIO_ACCESS_KEY:=minioadmin
 export MINIO_SECRET_KEY:=minioadmin
@@ -115,6 +116,23 @@ paste:
 	paste \
 	<(mc cat $(MINIO_HOSTNAME)/$(MINIO_BUCKET1)/files/Run1/Project_1/Sample_ABC/ABC.txt) \
 	<(mc cat $(MINIO_HOSTNAME)/$(MINIO_BUCKET1)/files/Run3/Project_3/Sample_GHI/GHI.txt)
+
+# run the example boto scripts to access files
+export BOTO3_ENDPOINT_URL:=$(MINIO_URL)
+export AWS_ACCESS_KEY_ID:=$(MINIO_USER)
+export AWS_SECRET_ACCESS_KEY:=$(MINIO_USER_PASSWORD)
+export BOTO_HOST:=$(MINIO_IP)
+export BOTO_PORT:=$(MINIO_PORT)
+export BOTO_SECURE:=False
+boto-script:
+	python3 get_file.py
+
+
+# get MinIO server contents from S3-compatible AWS CLI
+awscli:
+	aws s3 ls "$(MINIO_BUCKET1)" --endpoint-url "$(BOTO3_ENDPOINT_URL)"
+
+
 
 # ~~~~~ Start the MinIO server; run this in a separate terminal session ~~~~~ #
 SERVER_DIR:=./data
