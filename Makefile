@@ -160,6 +160,16 @@ clean-cwl:
 run-toil: $(WORK_DIR)
 	toil-cwl-runner --workDir "$(WORK_DIR)" --outdir "$(CWL_OUTPUT)" cwl/job.cwl cwl/input.json
 
+
+# "s3://toil-datasets/wdl_templates.zip"
+wdl_templates.zip:
+	wget http://toil-datasets.s3.amazonaws.com/wdl_templates.zip
+
+toil-test-setup: wdl_templates.zip
+	mc mb --ignore-existing "$(MINIO_HOSTNAME)/toil-datasets"
+	mc cp wdl_templates.zip "$(MINIO_HOSTNAME)/toil-datasets/wdl_templates.zip"
+
+
 # NOTE: Need to run `aws configure` first to set access key and secret key configs in ~/.aws
 # $ cat ~/.aws/credentials
 # [default]

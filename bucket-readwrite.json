@@ -8,7 +8,8 @@
       ],
       "Resource": [
         "arn:aws:s3:::bucket1/*", "arn:aws:s3:::bucket1",
-        "arn:aws:s3:::bucket2/*", "arn:aws:s3:::bucket2"
+        "arn:aws:s3:::bucket2/*", "arn:aws:s3:::bucket2",
+        "arn:aws:s3:::toil-datasets/*", "arn:aws:s3:::toil-datasets"
     ],
     "Sid": "BucketAccess"
     }
