@@ -60,8 +60,8 @@ alias:
 
 # set up two buckets
 bucket:
-	mc mb "$(MINIO_HOSTNAME)/$(MINIO_BUCKET1)"
-	mc mb "$(MINIO_HOSTNAME)/$(MINIO_BUCKET2)"
+	mc mb --ignore-existing "$(MINIO_HOSTNAME)/$(MINIO_BUCKET1)"
+	mc mb --ignore-existing "$(MINIO_HOSTNAME)/$(MINIO_BUCKET2)"
 
 # make one bucket public for http access
 policy:
