@@ -139,7 +139,8 @@ SERVER_DIR:=./data
 server:
 	minio server --address "$(MINIO_ADDRESS)" "$(SERVER_DIR)"
 
-
+server2:
+	minio server --address "$(MINIO_ADDRESS)" "$(SERVER_DIR){1...4}"
 
 # ~~~~~ Run the CWL workflow ~~~~~ #
 CWL_DIR:=$(CURDIR)/cwl
