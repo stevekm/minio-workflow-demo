@@ -1,6 +1,6 @@
 SHELL:=/bin/bash
 UNAME:=$(shell uname)
-export PATH:=$(CURDIR):$(CURDIR)/conda/bin:$(PATH)
+export PATH:=$(CURDIR):$(CURDIR)/conda/bin:$(ES_HOME)/bin:$(PATH)
 unexport PYTHONPATH
 unexport PYTHONHOME
 
@@ -10,13 +10,20 @@ ifeq ($(UNAME), Darwin)
 CONDASH:=Miniconda3-4.7.12.1-MacOSX-x86_64.sh
 MINIO_BIN_URL:=https://dl.min.io/server/minio/release/darwin-amd64/minio
 MC_URL:=https://dl.min.io/client/mc/release/darwin-amd64/mc
+ES_GZ:=elasticsearch-7.10.1-darwin-x86_64.tar.gz
+ES_URL:=https://artifacts.elastic.co/downloads/elasticsearch/$(ES_GZ)
 endif
 
 ifeq ($(UNAME), Linux)
 CONDASH:=Miniconda3-4.7.12.1-Linux-x86_64.sh
 MINIO_BIN_URL:=https://dl.min.io/server/minio/release/linux-amd64/minio
 MC_URL:=https://dl.min.io/client/mc/release/linux-amd64/mc
+ES_GZ:=elasticsearch-7.10.1-linux-x86_64.tar.gz
+ES_URL:=https://artifacts.elastic.co/downloads/elasticsearch/$(ES_GZ)
 endif
+
+export ES_HOME:=$(CURDIR)/elasticsearch-7.10.1
+export PATH:=$(ES_HOME)/bin:$(PATH)
 
 CONDAURL:=https://repo.continuum.io/miniconda/$(CONDASH)
 conda:
@@ -186,3 +193,11 @@ run-toil-s3: $(WORK_DIR)
 # interactive session with environment updated
 bash:
 	bash
+
+
+
+# ~~~~~ ElasticSearch setup ~~~~~ #
+$(ES_HOME):
+	wget "$(ES_URL)" && \
+	tar -xzf $(ES_GZ)
+es: $(ES_HOME)
