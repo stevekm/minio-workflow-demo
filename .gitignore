@@ -12,3 +12,11 @@ nextflow/work/*
 foo.txt.gz
 postgres.log
 db/
+elasticsearch-*.tar.gz
+
+elasticsearch-*
+elasticsearch-*/
+es_data/
+es_data/
+es_logs/
+es_pid

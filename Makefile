@@ -240,17 +240,47 @@ bash:
 
 
 # ~~~~~ ElasticSearch setup ~~~~~ #
+# https://www.elastic.co/guide/en/elasticsearch/reference/current/targz.html
+# https://www.elastic.co/guide/en/elasticsearch/reference/current/settings.html
+# https://www.elastic.co/guide/en/elasticsearch/reference/current/important-settings.html
+# https://www.elastic.co/guide/en/elasticsearch/reference/current/system-config.html
+# https://www.elastic.co/guide/en/elasticsearch/reference/current/setting-system-settings.html
+export ES_PORT:=9200
+export ES_HOST:=$(MINIO_IP)
+export ES_PIDFILE:=$(CURDIR)/es_pid
+export ES_DATA:=$(CURDIR)/es_data
+export ES_LOGS:=$(CURDIR)/es_logs
 $(ES_HOME):
 	wget "$(ES_URL)" && \
 	tar -xzf $(ES_GZ)
-es: $(ES_HOME)
+$(ES_DATA):
+	mkdir -p "$(ES_DATA)"
+$(ES_LOGS):
+	mkdir -p "$(ES_LOGS)"
 
+# ElasticSearch download, installation, and dir setup
+es: $(ES_HOME) $(ES_DATA) $(ES_LOGS)
+
+# start the ElasticSearch server in daemon mode
+es-start: es
+	$(ES_HOME)/bin/elasticsearch \
+	-E "path.data=$(ES_DATA)" \
+	-E "path.logs=$(ES_LOGS)" \
+	-d -p "$(ES_PIDFILE)"
+
+# stop ElasticSearch daemon
+es-stop:
+	pkill -F "$(ES_PIDFILE)"
+
+# check if ElasticSearch is running
+es-check:
+	curl -X GET "$(ES_HOST):$(ES_PORT)/?pretty"
 
 # ~~~~~ Postgres Setup ~~~~~ #
 # https://docs.min.io/docs/minio-bucket-notification-guide.html
 USERNAME:=$(shell whoami)
 # data dir for db
-export PGDATA:=$(CURDIR)/db
+export PGDATA:=$(CURDIR)/pg_db
 # name for db
 export PGDATABASE=minio_db
 # if PGUSER is not current username then need to initialize pg server user separately
