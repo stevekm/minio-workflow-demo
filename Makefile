@@ -1,5 +1,6 @@
 SHELL:=/bin/bash
 UNAME:=$(shell uname)
+.ONESHELL:
 export PATH:=$(CURDIR):$(CURDIR)/conda/bin:$(PATH)
 unexport PYTHONPATH
 unexport PYTHONHOME
@@ -34,6 +35,7 @@ mc:
 	chmod +x mc
 
 install: minio mc conda
+	conda install -y anaconda::postgresql=12.2
 	pip install \
 	cwltool==3.0.20201203173111 \
 	cwlref-runner==1.0 \
@@ -186,3 +188,63 @@ run-toil-s3: $(WORK_DIR)
 # interactive session with environment updated
 bash:
 	bash
+
+
+# ~~~~~ Postgres Setup ~~~~~ #
+# https://docs.min.io/docs/minio-bucket-notification-guide.html
+USERNAME:=$(shell whoami)
+# data dir for db
+export PGDATA:=$(CURDIR)/db
+# name for db
+export PGDATABASE=minio_db
+# if PGUSER is not current username then need to initialize pg server user separately
+export PGUSER=$(USERNAME)
+export PGHOST=$(MINIO_IP)
+export PGLOG=postgres.log
+export PGPASSWORD=admin
+export PGPORT=9011
+export PG_MINIO_TABLE:=bucketevents
+export connection_string:=host=$(PGHOST) port=$(PGPORT) user=$(PGUSER) password=$(PGPASSWORD) database=$(PGDATABASE) sslmode=disable
+
+# directory to hold the Postgres database files
+$(PGDATA):
+	mkdir -p "$(PGDATA)"
+
+# setup the Minio server to send notifications to postgres
+pg-config:
+	mc admin config set "$(MINIO_HOSTNAME)" notify_postgres:1 connection_string="$(connection_string)" table="$(PG_MINIO_TABLE)" format="namespace"
+	mc admin service restart "$(MINIO_HOSTNAME)"
+	mc event add "$(MINIO_HOSTNAME)/$(MINIO_BUCKET1)" arn:minio:sqs::1:postgresql
+
+# set up & start the Postgres db server instance
+db-init: $(PGDATA)
+	set -x && \
+	pg_ctl -D "$(PGDATA)" initdb && \
+	pg_ctl -D "$(PGDATA)" -l "$(PGLOG)" start && \
+	createdb
+
+# start the Postgres database server process
+db-start: $(PGDATA)
+	pg_ctl -D "$(PGDATA)" -l "$(PGLOG)" start
+
+# stop the db server
+db-stop:
+	pg_ctl -D "$(PGDATA)" stop
+
+# check if db server is running
+db-check:
+	pg_ctl status
+
+# interactive Postgres console
+# use command `\dt` to show all tables
+db-inter:
+	psql -p "$(PGPORT)" -U "$(PGUSER)" -W "$(PGDATABASE)"
+
+db-count:
+	echo "SELECT COUNT(*) FROM $(PG_MINIO_TABLE)" | psql -p "$(PGPORT)" -U "$(PGUSER)" -W "$(PGDATABASE)" -At
+
+# tables=$$(echo "SELECT table_name FROM information_schema.tables WHERE table_type='BASE TABLE' AND table_schema='public'" | psql -p "$(PGPORT)" -U "$(PGUSER)" -W "$(PGDATABASE)" -At)
+# echo $$tables
+# for table in $$tables; do
+# printf "%s: %s\n" "$$table" "$$(echo "SELECT COUNT(*) FROM $$table;" | psql -U "$${PGUSER}" -At)"
+# done | sort -k1,1

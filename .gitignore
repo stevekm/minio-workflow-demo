@@ -10,3 +10,5 @@ nextflow/output/*
 nextflow/nextflow
 nextflow/work/*
 foo.txt.gz
+postgres.log
+db/
