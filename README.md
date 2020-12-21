@@ -192,6 +192,78 @@ make boto-script
 make awscli
 ```
 
+# Bucket Notifications
+
+MinIO can be configured to push notifications of bucket events to a database.
+
+## Postgres Integration
+
+Configure Minio to register all file objects in a Postgres SQL database.
+
+Initialize a new Postgres database in this directory:
+
+```
+make pg-init
+```
+
+Configure the running Minio server to send notifications to Postgres:
+
+```
+make pg-config
+```
+
+Test it by running the file import recipe again and checking the number of entries; Postgres password should be 'admin'
+
+```
+make import-files
+make pg-count
+```
+
+There should be 3 files now.
+
+## ElasticSearch + Kibana dashboard
+
+Similar to Postgres integration, Minio can also be configured to register listings of all objects in [ElasticSearch](https://www.elastic.co/elasticsearch/), which can be used with [Kibana](https://www.elastic.co/guide/en/kibana/current/get-started.html) dashboards.
+
+Initialize ElasticSearch in the current directory:
+
+```
+make es-start
+```
+
+Configure the running Minio server to send notifications to ElasticSearch:
+
+```
+make es-config
+```
+
+NOTE: if you had previously set up another notification database such as Postgres, it might need to be running for this to work
+
+Test it by running the file import recipe again:
+
+```
+make import-files
+make es-count
+```
+
+With ElasticSearch configured and populated, install and setup up Kibana with
+
+```
+make kibana
+```
+
+Then open your web browser to http://localhost:5601 and set up data import and dashboards to view file events.
+
+## With CWL pipeline updates
+
+With the database integrations described above, we can run a CWL pipeline with input files from the MinIO object store, and then use a simple script to upload pipeline outputs back into the object store for registration in our database (Postgres, ElasticSearch, etc.). An example of this can be run with:
+
+```
+make send-cwl-output
+```
+
+This recipe will run a CWL workflow several times, capturing each result with the `send_cwl_output.py` script and pushing the files into the MinIO bucket.
+
 # Resources & Links
 
 MinIO repo
@@ -203,6 +275,10 @@ Official docs for MinIO server and client
 - https://docs.min.io/docs/minio-quickstart-guide.html
 
 - https://docs.min.io/docs/minio-client-quickstart-guide.html
+
+MinIO Bucket Notifications configuration guide
+
+- https://docs.min.io/docs/minio-bucket-notification-guide.html
 
 Usage of AWS S3 protocol with Nextflow
 
