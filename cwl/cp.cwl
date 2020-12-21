@@ -15,7 +15,7 @@ inputs:
       position: 2
 
 outputs:
-  hisens_seg:
+  output_file:
     type: File
     outputBinding:
       glob: $(inputs.output_filename)

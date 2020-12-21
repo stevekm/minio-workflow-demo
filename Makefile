@@ -119,7 +119,10 @@ mc:
 	chmod +x mc
 
 install: minio mc conda
-	conda install -y anaconda::postgresql=12.2
+	conda install -y \
+	anaconda::postgresql=12.2 \
+	conda-forge::jq \
+	conda-forge::nodejs
 	pip install \
 	cwltool==3.0.20201203173111 \
 	cwlref-runner==1.0 \
@@ -237,7 +240,7 @@ $(WORK_DIR):
 run-cwl:
 	cwltool \
 	--outdir "$(CWL_OUTPUT)" \
-	cwl/job.cwl cwl/input.json
+	cwl/cp.cwl cwl/input.json
 
 clean-cwl:
 	rm -rf "$(CWL_OUTPUT)"
@@ -245,7 +248,7 @@ clean-cwl:
 
 # Run with Toil
 run-toil: $(WORK_DIR)
-	toil-cwl-runner --workDir "$(WORK_DIR)" --outdir "$(CWL_OUTPUT)" cwl/job.cwl cwl/input.json
+	toil-cwl-runner --workDir "$(WORK_DIR)" --outdir "$(CWL_OUTPUT)" cwl/cp.cwl cwl/input.json
 
 
 # NOTE: Need to run `aws configure` first to set access key and secret key configs in ~/.aws
@@ -259,7 +262,7 @@ export BOTO3_ENDPOINT_URL:=$(MINIO_URL)
 export AWS_ACCESS_KEY_ID:=$(MINIO_USER)
 export AWS_SECRET_ACCESS_KEY:=$(MINIO_USER_PASSWORD)
 run-toil-s3: $(WORK_DIR)
-	toil-cwl-runner --workDir "$(WORK_DIR)" --outdir "$(CWL_OUTPUT)" cwl/job.cwl cwl/input.s3.json
+	toil-cwl-runner --workDir "$(WORK_DIR)" --outdir "$(CWL_OUTPUT)" cwl/cp.cwl cwl/input.s3.json
 
 # "s3://toil-datasets/wdl_templates.zip"
 wdl_templates.zip:
