@@ -6,6 +6,39 @@ unexport PYTHONPATH
 unexport PYTHONHOME
 
 define help
+Installation
+------------
+
+make install
+
+Setup
+-----
+
+In a separate terminal session in this directory, run
+
+make server
+
+In this session, run
+
+make setup
+
+Postgres Database (optional)
+----------------------------
+
+Initialize a new Postgres database in this directory
+
+make pg-init
+
+Configure the running Minio server to send notifications to Postgres
+
+make pg-config
+
+Test it by running the file import recipe again and checking the number of entries; Postgres password should be 'admin'
+
+make import-files
+make pg-count
+# 3
+
 endef
 export help
 help:
@@ -218,35 +251,35 @@ export connection_string:=host=$(PGHOST) port=$(PGPORT) user=$(PGUSER) password=
 $(PGDATA):
 	mkdir -p "$(PGDATA)"
 
+# set up & start the Postgres db server instance
+pg-init: $(PGDATA)
+	set -x && \
+	pg_ctl -D "$(PGDATA)" initdb && \
+	pg_ctl -D "$(PGDATA)" -l "$(PGLOG)" start && \
+	createdb
+
 # setup the Minio server to send notifications to postgres
 pg-config:
 	mc admin config set "$(MINIO_HOSTNAME)" notify_postgres:1 connection_string="$(connection_string)" table="$(PG_MINIO_TABLE)" format="namespace"
 	mc admin service restart "$(MINIO_HOSTNAME)"
 	mc event add "$(MINIO_HOSTNAME)/$(MINIO_BUCKET1)" arn:minio:sqs::1:postgresql
 
-# set up & start the Postgres db server instance
-db-init: $(PGDATA)
-	set -x && \
-	pg_ctl -D "$(PGDATA)" initdb && \
-	pg_ctl -D "$(PGDATA)" -l "$(PGLOG)" start && \
-	createdb
-
 # start the Postgres database server process
-db-start: $(PGDATA)
+pg-start: $(PGDATA)
 	pg_ctl -D "$(PGDATA)" -l "$(PGLOG)" start
 
 # stop the db server
-db-stop:
+pg-stop:
 	pg_ctl -D "$(PGDATA)" stop
 
 # check if db server is running
-db-check:
+pg-check:
 	pg_ctl status
 
 # interactive Postgres console
 # use command `\dt` to show all tables
-db-inter:
+pg-inter:
 	psql -p "$(PGPORT)" -U "$(PGUSER)" -W "$(PGDATABASE)"
 
-db-count:
+pg-count:
 	echo "SELECT COUNT(*) FROM $(PG_MINIO_TABLE)" | psql -p "$(PGPORT)" -U "$(PGUSER)" -W "$(PGDATABASE)" -At
