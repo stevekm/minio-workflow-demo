@@ -5,6 +5,14 @@ export PATH:=$(CURDIR):$(CURDIR)/conda/bin:$(PATH)
 unexport PYTHONPATH
 unexport PYTHONHOME
 
+define help
+endef
+export help
+help:
+	@printf "$$help"
+.PHONY : help
+
+
 # ~~~~~ Installation of dependencies for running MinIO, CWL workflow ~~~~~ #
 # versions for Mac or Linux
 ifeq ($(UNAME), Darwin)
@@ -201,7 +209,7 @@ export PGDATABASE=minio_db
 export PGUSER=$(USERNAME)
 export PGHOST=$(MINIO_IP)
 export PGLOG=postgres.log
-export PGPASSWORD=admin
+# export PGPASSWORD=admin
 export PGPORT=9011
 export PG_MINIO_TABLE:=bucketevents
 export connection_string:=host=$(PGHOST) port=$(PGPORT) user=$(PGUSER) password=$(PGPASSWORD) database=$(PGDATABASE) sslmode=disable
@@ -242,9 +250,3 @@ db-inter:
 
 db-count:
 	echo "SELECT COUNT(*) FROM $(PG_MINIO_TABLE)" | psql -p "$(PGPORT)" -U "$(PGUSER)" -W "$(PGDATABASE)" -At
-
-# tables=$$(echo "SELECT table_name FROM information_schema.tables WHERE table_type='BASE TABLE' AND table_schema='public'" | psql -p "$(PGPORT)" -U "$(PGUSER)" -W "$(PGDATABASE)" -At)
-# echo $$tables
-# for table in $$tables; do
-# printf "%s: %s\n" "$$table" "$$(echo "SELECT COUNT(*) FROM $$table;" | psql -U "$${PGUSER}" -At)"
-# done | sort -k1,1
