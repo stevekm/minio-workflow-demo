@@ -1,8 +1,49 @@
 SHELL:=/bin/bash
 UNAME:=$(shell uname)
-export PATH:=$(CURDIR):$(CURDIR)/conda/bin:$(ES_HOME)/bin:$(PATH)
+export PATH:=$(CURDIR):$(CURDIR)/conda/bin:$(PATH)
 unexport PYTHONPATH
 unexport PYTHONHOME
+
+define help
+Installation
+------------
+
+make install
+
+Setup
+-----
+
+In a separate terminal session in this directory, run
+
+make server
+
+In this session, run
+
+make setup
+
+Postgres Database (optional)
+----------------------------
+
+Initialize a new Postgres database in this directory
+
+make pg-init
+
+Configure the running Minio server to send notifications to Postgres
+
+make pg-config
+
+Test it by running the file import recipe again and checking the number of entries; Postgres password should be 'admin'
+
+make import-files
+make pg-count
+# 3
+
+endef
+export help
+help:
+	@printf "$$help"
+.PHONY : help
+
 
 # ~~~~~ Installation of dependencies for running MinIO, CWL workflow ~~~~~ #
 # versions for Mac or Linux
@@ -41,6 +82,7 @@ mc:
 	chmod +x mc
 
 install: minio mc conda
+	conda install -y anaconda::postgresql=12.2
 	pip install \
 	cwltool==3.0.20201203173111 \
 	cwlref-runner==1.0 \
@@ -169,6 +211,19 @@ run-toil: $(WORK_DIR)
 	toil-cwl-runner --workDir "$(WORK_DIR)" --outdir "$(CWL_OUTPUT)" cwl/job.cwl cwl/input.json
 
 
+# NOTE: Need to run `aws configure` first to set access key and secret key configs in ~/.aws
+# $ cat ~/.aws/credentials
+# [default]
+# aws_access_key_id = user1
+# aws_secret_access_key = password1234
+# $ aws s3 ls bucket1 --endpoint-url http://127.0.0.1:9010
+# TODO: update this for toil with new configs from this PR; https://github.com/DataBiosphere/toil/pull/3370
+export BOTO3_ENDPOINT_URL:=$(MINIO_URL)
+export AWS_ACCESS_KEY_ID:=$(MINIO_USER)
+export AWS_SECRET_ACCESS_KEY:=$(MINIO_USER_PASSWORD)
+run-toil-s3: $(WORK_DIR)
+	toil-cwl-runner --workDir "$(WORK_DIR)" --outdir "$(CWL_OUTPUT)" cwl/job.cwl cwl/input.s3.json
+
 # "s3://toil-datasets/wdl_templates.zip"
 wdl_templates.zip:
 	wget http://toil-datasets.s3.amazonaws.com/wdl_templates.zip
@@ -177,18 +232,6 @@ toil-test-setup: wdl_templates.zip
 	mc mb --ignore-existing "$(MINIO_HOSTNAME)/toil-datasets"
 	mc cp wdl_templates.zip "$(MINIO_HOSTNAME)/toil-datasets/wdl_templates.zip"
 
-
-# NOTE: Need to run `aws configure` first to set access key and secret key configs in ~/.aws
-# $ cat ~/.aws/credentials
-# [default]
-# aws_access_key_id = user1
-# aws_secret_access_key = password1234
-# $ aws s3 ls bucket1 --endpoint-url http://127.0.0.1:9010
-export BOTO3_ENDPOINT_URL:=$(MINIO_URL)
-export AWS_ACCESS_KEY_ID:=$(MINIO_USER)
-export AWS_SECRET_ACCESS_KEY:=$(MINIO_USER_PASSWORD)
-run-toil-s3: $(WORK_DIR)
-	toil-cwl-runner --workDir "$(WORK_DIR)" --outdir "$(CWL_OUTPUT)" cwl/job.cwl cwl/input.s3.json
 
 # interactive session with environment updated
 bash:
@@ -201,3 +244,57 @@ $(ES_HOME):
 	wget "$(ES_URL)" && \
 	tar -xzf $(ES_GZ)
 es: $(ES_HOME)
+
+
+# ~~~~~ Postgres Setup ~~~~~ #
+# https://docs.min.io/docs/minio-bucket-notification-guide.html
+USERNAME:=$(shell whoami)
+# data dir for db
+export PGDATA:=$(CURDIR)/db
+# name for db
+export PGDATABASE=minio_db
+# if PGUSER is not current username then need to initialize pg server user separately
+export PGUSER=$(USERNAME)
+export PGHOST=$(MINIO_IP)
+export PGLOG=postgres.log
+# export PGPASSWORD=admin
+export PGPORT=9011
+export PG_MINIO_TABLE:=bucketevents
+export connection_string:=host=$(PGHOST) port=$(PGPORT) user=$(PGUSER) password=$(PGPASSWORD) database=$(PGDATABASE) sslmode=disable
+
+# directory to hold the Postgres database files
+$(PGDATA):
+	mkdir -p "$(PGDATA)"
+
+# set up & start the Postgres db server instance
+pg-init: $(PGDATA)
+	set -x && \
+	pg_ctl -D "$(PGDATA)" initdb && \
+	pg_ctl -D "$(PGDATA)" -l "$(PGLOG)" start && \
+	createdb
+
+# setup the Minio server to send notifications to postgres
+pg-config:
+	mc admin config set "$(MINIO_HOSTNAME)" notify_postgres:1 connection_string="$(connection_string)" table="$(PG_MINIO_TABLE)" format="namespace"
+	mc admin service restart "$(MINIO_HOSTNAME)"
+	mc event add "$(MINIO_HOSTNAME)/$(MINIO_BUCKET1)" arn:minio:sqs::1:postgresql
+
+# start the Postgres database server process
+pg-start: $(PGDATA)
+	pg_ctl -D "$(PGDATA)" -l "$(PGLOG)" start
+
+# stop the db server
+pg-stop:
+	pg_ctl -D "$(PGDATA)" stop
+
+# check if db server is running
+pg-check:
+	pg_ctl status
+
+# interactive Postgres console
+# use command `\dt` to show all tables
+pg-inter:
+	psql -p "$(PGPORT)" -U "$(PGUSER)" -W "$(PGDATABASE)"
+
+pg-count:
+	echo "SELECT COUNT(*) FROM $(PG_MINIO_TABLE)" | psql -p "$(PGPORT)" -U "$(PGUSER)" -W "$(PGDATABASE)" -At
