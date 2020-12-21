@@ -24,6 +24,8 @@ make setup
 Postgres Database (optional)
 ----------------------------
 
+Configure Minio to register all file objects in a Postgres database
+
 Initialize a new Postgres database in this directory
 
 make pg-init
@@ -37,6 +39,27 @@ Test it by running the file import recipe again and checking the number of entri
 make import-files
 make pg-count
 # 3
+
+
+ElasticSearch (optional)
+------------------------
+
+Configure Minio to register all file objects in an ElasticSearch index
+
+Initialize ElasticSearch in the current directory
+
+make es-start
+
+Configure the running Minio server to send notifications to ElasticSearch
+
+make es-config
+
+NOTE: if you had previously set up another notification database such as Postgres, it might need to be running for this to work
+
+Test it by running the file import recipe again
+
+make import-files
+make es-count
 
 endef
 export help
