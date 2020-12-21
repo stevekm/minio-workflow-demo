@@ -1,5 +1,6 @@
 SHELL:=/bin/bash
 UNAME:=$(shell uname)
+.ONESHELL:
 export PATH:=$(CURDIR):$(CURDIR)/conda/bin:$(PATH)
 unexport PYTHONPATH
 unexport PYTHONHOME
@@ -121,7 +122,6 @@ mc:
 install: minio mc conda
 	conda install -y \
 	anaconda::postgresql=12.2 \
-	conda-forge::jq \
 	conda-forge::nodejs
 	pip install \
 	cwltool==3.0.20201203173111 \
@@ -131,7 +131,7 @@ install: minio mc conda
 
 # ~~~~~ MinIO Server Setup ~~~~~ #
 MINIO_HOSTNAME:=myminio
-MINIO_BUCKET1:=bucket1
+export MINIO_BUCKET1:=bucket1
 MINIO_BUCKET2:=bucket2
 MINIO_USER:=user1
 MINIO_USER_PASSWORD:=password1234
@@ -235,12 +235,22 @@ server2:
 CWL_DIR:=$(CURDIR)/cwl
 WORK_DIR:=$(CWL_DIR)/work
 CWL_OUTPUT:=$(CWL_DIR)/output
+CWL_OUTPUT_JSON:=$(CWL_DIR)/output.json
 $(WORK_DIR):
 	mkdir -p "$(WORK_DIR)"
 run-cwl:
 	cwltool \
 	--outdir "$(CWL_OUTPUT)" \
 	cwl/cp.cwl cwl/input.json
+
+# run a bunch of CWL workflows and upload each output to the Minio server
+send-cwl-output:
+	for i in 1 2 3 4; do \
+	cwltool \
+	--outdir "$(CWL_OUTPUT)" \
+	cwl/timestamp-workflow.cwl cwl/input.json > "$(CWL_OUTPUT_JSON)" && \
+	./send_cwl_output.py "$(CWL_OUTPUT_JSON)"; \
+	done
 
 clean-cwl:
 	rm -rf "$(CWL_OUTPUT)"
