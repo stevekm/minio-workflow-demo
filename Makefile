@@ -247,9 +247,11 @@ bash:
 # https://www.elastic.co/guide/en/elasticsearch/reference/current/setting-system-settings.html
 export ES_PORT:=9200
 export ES_HOST:=$(MINIO_IP)
+export ES_URL:=http://$(ES_HOST):$(ES_PORT)
 export ES_PIDFILE:=$(CURDIR)/es_pid
 export ES_DATA:=$(CURDIR)/es_data
 export ES_LOGS:=$(CURDIR)/es_logs
+export ES_INDEX:=minio_events
 $(ES_HOME):
 	wget "$(ES_URL)" && \
 	tar -xzf $(ES_GZ)
@@ -274,7 +276,17 @@ es-stop:
 
 # check if ElasticSearch is running
 es-check:
-	curl -X GET "$(ES_HOST):$(ES_PORT)/?pretty"
+	curl -X GET "$(ES_URL)/?pretty"
+
+# get the entries in the ElasticSearch index
+es-count:
+	curl  "$(ES_URL)/$(ES_INDEX)/_search?pretty=true"
+
+# configure the Minio server to use ElasticSearch
+es-config:
+	mc admin config set "$(MINIO_HOSTNAME)" notify_elasticsearch:1 url="$(ES_URL)" format="namespace" index="$(ES_INDEX)"
+	mc admin service restart "$(MINIO_HOSTNAME)"
+	mc event add "$(MINIO_HOSTNAME)/$(MINIO_BUCKET1)" arn:minio:sqs::1:elasticsearch
 
 # ~~~~~ Postgres Setup ~~~~~ #
 # https://docs.min.io/docs/minio-bucket-notification-guide.html
