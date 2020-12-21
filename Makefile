@@ -205,6 +205,19 @@ run-toil: $(WORK_DIR)
 	toil-cwl-runner --workDir "$(WORK_DIR)" --outdir "$(CWL_OUTPUT)" cwl/job.cwl cwl/input.json
 
 
+# NOTE: Need to run `aws configure` first to set access key and secret key configs in ~/.aws
+# $ cat ~/.aws/credentials
+# [default]
+# aws_access_key_id = user1
+# aws_secret_access_key = password1234
+# $ aws s3 ls bucket1 --endpoint-url http://127.0.0.1:9010
+# TODO: update this for toil with new configs from this PR; https://github.com/DataBiosphere/toil/pull/3370
+export BOTO3_ENDPOINT_URL:=$(MINIO_URL)
+export AWS_ACCESS_KEY_ID:=$(MINIO_USER)
+export AWS_SECRET_ACCESS_KEY:=$(MINIO_USER_PASSWORD)
+run-toil-s3: $(WORK_DIR)
+	toil-cwl-runner --workDir "$(WORK_DIR)" --outdir "$(CWL_OUTPUT)" cwl/job.cwl cwl/input.s3.json
+
 # "s3://toil-datasets/wdl_templates.zip"
 wdl_templates.zip:
 	wget http://toil-datasets.s3.amazonaws.com/wdl_templates.zip
@@ -213,18 +226,6 @@ toil-test-setup: wdl_templates.zip
 	mc mb --ignore-existing "$(MINIO_HOSTNAME)/toil-datasets"
 	mc cp wdl_templates.zip "$(MINIO_HOSTNAME)/toil-datasets/wdl_templates.zip"
 
-
-# NOTE: Need to run `aws configure` first to set access key and secret key configs in ~/.aws
-# $ cat ~/.aws/credentials
-# [default]
-# aws_access_key_id = user1
-# aws_secret_access_key = password1234
-# $ aws s3 ls bucket1 --endpoint-url http://127.0.0.1:9010
-export BOTO3_ENDPOINT_URL:=$(MINIO_URL)
-export AWS_ACCESS_KEY_ID:=$(MINIO_USER)
-export AWS_SECRET_ACCESS_KEY:=$(MINIO_USER_PASSWORD)
-run-toil-s3: $(WORK_DIR)
-	toil-cwl-runner --workDir "$(WORK_DIR)" --outdir "$(CWL_OUTPUT)" cwl/job.cwl cwl/input.s3.json
 
 # interactive session with environment updated
 bash:
