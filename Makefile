@@ -61,6 +61,15 @@ Test it by running the file import recipe again
 make import-files
 make es-count
 
+Kibana
+------
+
+With ElasticSearch configured and populated, install and setup up Kibana with
+
+make kibana
+
+Then open your web browser to http://localhost:5601
+
 endef
 export help
 help:
@@ -75,7 +84,8 @@ CONDASH:=Miniconda3-4.7.12.1-MacOSX-x86_64.sh
 MINIO_BIN_URL:=https://dl.min.io/server/minio/release/darwin-amd64/minio
 MC_URL:=https://dl.min.io/client/mc/release/darwin-amd64/mc
 ES_GZ:=elasticsearch-7.10.1-darwin-x86_64.tar.gz
-ES_URL:=https://artifacts.elastic.co/downloads/elasticsearch/$(ES_GZ)
+KIBANA_GZ:=kibana-7.10.1-darwin-x86_64.tar.gz
+export KIBANA_HOME:=$(CURDIR)/kibana-7.10.1-darwin-x86_64
 endif
 
 ifeq ($(UNAME), Linux)
@@ -83,8 +93,12 @@ CONDASH:=Miniconda3-4.7.12.1-Linux-x86_64.sh
 MINIO_BIN_URL:=https://dl.min.io/server/minio/release/linux-amd64/minio
 MC_URL:=https://dl.min.io/client/mc/release/linux-amd64/mc
 ES_GZ:=elasticsearch-7.10.1-linux-x86_64.tar.gz
-ES_URL:=https://artifacts.elastic.co/downloads/elasticsearch/$(ES_GZ)
+KIBANA_GZ:=kibana-7.10.1-linux-x86_64.tar.gz
+export KIBANA_HOME:=$(CURDIR)/kibana-7.10.1-linux-x86_64
 endif
+
+ES_URL:=https://artifacts.elastic.co/downloads/elasticsearch/$(ES_GZ)
+KIBANA_URL:=https://artifacts.elastic.co/downloads/kibana/$(KIBANA_GZ)
 
 export ES_HOME:=$(CURDIR)/elasticsearch-7.10.1
 export PATH:=$(ES_HOME)/bin:$(PATH)
@@ -310,6 +324,24 @@ es-config:
 	mc admin config set "$(MINIO_HOSTNAME)" notify_elasticsearch:1 url="$(ES_URL)" format="namespace" index="$(ES_INDEX)"
 	mc admin service restart "$(MINIO_HOSTNAME)"
 	mc event add "$(MINIO_HOSTNAME)/$(MINIO_BUCKET1)" arn:minio:sqs::1:elasticsearch
+
+
+
+export KIBANA_HOST:=$(MINIO_IP)
+export KIBANA_PORT:=5601
+export KIBANA_LOG:=kibana.log
+export KIBANA_CONFIG:=$(CURDIR)/kibana.yml
+$(KIBANA_HOME):
+	wget "$(KIBANA_URL)" && \
+	tar -xzf $(KIBANA_GZ)
+kibana: $(KIBANA_HOME)
+	$(KIBANA_HOME)/bin/kibana \
+	-e "$(ES_URL)" \
+	--port "$(KIBANA_PORT)" \
+	--host "$(KIBANA_HOST)" \
+	--log-file "$(KIBANA_LOG)" \
+	--config "$(KIBANA_CONFIG)"
+
 
 # ~~~~~ Postgres Setup ~~~~~ #
 # https://docs.min.io/docs/minio-bucket-notification-guide.html

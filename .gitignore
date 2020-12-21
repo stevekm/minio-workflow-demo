@@ -20,3 +20,5 @@ es_data/
 es_data/
 es_logs/
 es_pid
+kibana.log
+kibana-7.10.1*
