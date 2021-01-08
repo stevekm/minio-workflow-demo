@@ -165,6 +165,7 @@ user-groups:
 	mc admin policy set "$(MINIO_HOSTNAME)" "$(MINIO_POLICYNAME)" "group=$(MINIO_GROUP)"
 	mc admin group info "$(MINIO_HOSTNAME)" "$(MINIO_GROUP)"
 
+# import the demo files
 FILES_DIR:=files
 import-files:
 	for filepath in $$(find $(FILES_DIR) -type f -name '*.txt'); do \
@@ -181,6 +182,12 @@ import-files:
 
 setup: alias bucket user-groups policy import-files
 
+# import files from an arbitrary directory
+DIR:=
+import-dir:
+	for filepath in $$(find "$(DIR)/" -type f ! -name "*.bam"); do \
+	mc cp "$$filepath" "$(MINIO_HOSTNAME)/$(MINIO_BUCKET1)/$$filepath" ; \
+	done
 
 # example usages
 list-files:
