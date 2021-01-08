@@ -276,6 +276,8 @@ In this case, the CWL workflow is run with an output directory of `Project1`. A 
 
 Using the MinIO web dashboard, the client can now download their files by navigating to `http://localhost:9010` in their web browser, and logging in with the username and password created for their user account.
 
+![screenshot](https://github.com/stevekm/minio-workflow-demo/blob/main/images/Screen%20Shot%202021-01-08%20at%2010.27.00%20AM.png)
+
 # Resources & Links
 
 MinIO repo
