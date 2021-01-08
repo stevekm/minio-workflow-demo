@@ -122,12 +122,18 @@ mc:
 install: minio mc conda
 	conda install -y \
 	anaconda::postgresql=12.2 \
-	conda-forge::nodejs
+	conda-forge::nodejs \
+	conda-forge::jq
 	pip install \
 	cwltool==3.0.20201203173111 \
 	cwlref-runner==1.0 \
 	toil[all]==5.0.0 \
 	awscli==1.18.194
+
+# interactive session with environment updated
+bash:
+	bash
+
 
 # ~~~~~ MinIO Server Setup ~~~~~ #
 MINIO_HOSTNAME:=myminio
@@ -290,9 +296,43 @@ toil-test-setup: wdl_templates.zip
 	mc cp wdl_templates.zip "$(MINIO_HOSTNAME)/toil-datasets/wdl_templates.zip"
 
 
-# interactive session with environment updated
-bash:
-	bash
+
+
+# ~~~~~ Simulate a Project Results Delivery ~~~~~ #
+PROJECT_ID:=Project1
+# bucket name must be all lowercase
+PROJECT_BUCKET:=$(shell echo $(PROJECT_ID) | tr '[:upper:]' '[:lower:]')
+PROJECT_USER:=client1
+PROJECT_PASSWORD:=12345678
+PROJECT_RESOURCE:=arn:aws:s3:::$(PROJECT_BUCKET)/*
+PROJECT_POLICYNAME:=$(PROJECT_BUCKET)-read
+PROJECT_POLICYFILE:=$(PROJECT_BUCKET).read.json
+
+# NOTE: try this in the future for a real password, with Python 3.6+;
+# password:
+# 	python3 -c 'import secrets, string; print("".join(secrets.choice(string.ascii_letters + string.digits) for i in range(16) ) )'
+
+# create a MinIO access policy for the user
+$(PROJECT_POLICYFILE):
+	jq -n --arg resource "$(PROJECT_RESOURCE)" '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:*"],"Resource":[$$resource],"Sid":"BucketAccess"}]}' > "$(PROJECT_POLICYFILE)"
+project-policy: $(PROJECT_POLICYFILE)
+	mc admin user add "$(MINIO_HOSTNAME)" "$(PROJECT_USER)" "$(PROJECT_PASSWORD)"
+	mc admin policy add "$(MINIO_HOSTNAME)" "$(PROJECT_POLICYNAME)" "$(PROJECT_POLICYFILE)"
+	mc admin policy set "$(MINIO_HOSTNAME)" "$(PROJECT_POLICYNAME)" "user=$(PROJECT_USER)"
+# NOTE: its prob a better idea to do user groups & group policies in production usages
+
+project-bucket:
+	mc mb --ignore-existing "$(MINIO_HOSTNAME)/$(PROJECT_BUCKET)" && \
+	mc ilm add --expiry-days 1 "$(MINIO_HOSTNAME)/$(PROJECT_BUCKET)"
+
+# run the pipeline and import the results to the project bucket
+delivery: project-policy project-bucket
+	for i in 1 2 3 4; do \
+	cwltool --outdir "$(PROJECT_ID)" cwl/timestamp-workflow.cwl cwl/input.json ; \
+	done ; \
+	for filepath in $$(find "$(PROJECT_ID)/" -type f ); do \
+	mc cp "$$filepath" "$(MINIO_HOSTNAME)/$(PROJECT_BUCKET)/$$filepath" ; \
+	done ; \
 
 
 

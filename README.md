@@ -264,6 +264,18 @@ make send-cwl-output
 
 This recipe will run a CWL workflow several times, capturing each result with the `send_cwl_output.py` script and pushing the files into the MinIO bucket.
 
+# Pipeline Results Delivery
+
+In real-life contexts, it is common to send a copy of your analysis workflow results to a client or collaborator. To simulate running a workflow for a collaborator and preparing a delivery of their results, use the recipe:
+
+```
+make delivery
+```
+
+In this case, the CWL workflow is run with an output directory of `Project1`. A new bucket on our MinIO server called `project1` is prepared, and upon completion of the CWL workflow, all output files are imported to this bucket. A new MinIO server user account `client1` is created with a default password of `12345678`, and read-only access is applied to bucket `project1` for this user. Additionally, the bucket is given a lifecycle of 1 day for demonstration purposes, so the files in the bucket will automatically delete after 1 day on the server.
+
+Using the MinIO web dashboard, the client can now download their files by navigating to `http://localhost:9010` in their web browser, and logging in with the username and password created for their user account.
+
 # Resources & Links
 
 MinIO repo
@@ -279,6 +291,10 @@ Official docs for MinIO server and client
 MinIO Bucket Notifications configuration guide
 
 - https://docs.min.io/docs/minio-bucket-notification-guide.html
+
+MinIO Bucket Lifecycles
+
+- https://docs.min.io/docs/minio-bucket-lifecycle-guide.html
 
 Usage of AWS S3 protocol with Nextflow
 
