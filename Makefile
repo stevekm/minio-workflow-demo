@@ -83,6 +83,7 @@ help:
 ifeq ($(UNAME), Darwin)
 CONDASH:=Miniconda3-4.7.12.1-MacOSX-x86_64.sh
 MINIO_BIN_URL:=https://dl.min.io/server/minio/release/darwin-amd64/minio
+MINIO_CONSOLE:=console-darwin-amd64
 MC_URL:=https://dl.min.io/client/mc/release/darwin-amd64/mc
 ES_GZ:=elasticsearch-7.10.1-darwin-x86_64.tar.gz
 KIBANA_GZ:=kibana-7.10.1-darwin-x86_64.tar.gz
@@ -92,6 +93,7 @@ endif
 ifeq ($(UNAME), Linux)
 CONDASH:=Miniconda3-4.7.12.1-Linux-x86_64.sh
 MINIO_BIN_URL:=https://dl.min.io/server/minio/release/linux-amd64/minio
+MINIO_CONSOLE:=console-linux-amd64
 MC_URL:=https://dl.min.io/client/mc/release/linux-amd64/mc
 ES_GZ:=elasticsearch-7.10.1-linux-x86_64.tar.gz
 KIBANA_GZ:=kibana-7.10.1-linux-x86_64.tar.gz
@@ -100,6 +102,7 @@ endif
 
 ES_URL:=https://artifacts.elastic.co/downloads/elasticsearch/$(ES_GZ)
 KIBANA_URL:=https://artifacts.elastic.co/downloads/kibana/$(KIBANA_GZ)
+MINIO_CONSOLE_URL:=https://github.com/minio/console/releases/latest/download/$(MINIO_CONSOLE)
 
 export ES_HOME:=$(CURDIR)/elasticsearch-7.10.1
 export PATH:=$(ES_HOME)/bin:$(PATH)
@@ -119,7 +122,13 @@ mc:
 	wget "$(MC_URL)" && \
 	chmod +x mc
 
-install: minio mc conda
+# https://github.com/minio/console
+$(MINIO_CONSOLE):
+	wget $(MINIO_CONSOLE_URL) && chmod +x $(MINIO_CONSOLE)
+console: $(MINIO_CONSOLE)
+	ln -s "$(MINIO_CONSOLE)" console
+
+install: minio mc conda console
 	conda install -y \
 	anaconda::postgresql=12.2 \
 	conda-forge::nodejs \
@@ -170,6 +179,24 @@ user-groups:
 	mc admin policy add "$(MINIO_HOSTNAME)" "$(MINIO_POLICYNAME)" "$(MINIO_POLICYFILE)"
 	mc admin policy set "$(MINIO_HOSTNAME)" "$(MINIO_POLICYNAME)" "group=$(MINIO_GROUP)"
 	mc admin group info "$(MINIO_HOSTNAME)" "$(MINIO_GROUP)"
+
+# add the admin user for access to the Minio Console
+CONSOLE_USERNAME:=console
+CONSOLE_PASSWORD:=console123
+console-user:
+	mc admin user add "$(MINIO_HOSTNAME)" "$(CONSOLE_USERNAME)" "$(CONSOLE_PASSWORD)"
+	mc admin policy add "$(MINIO_HOSTNAME)" consoleAdmin admin.json
+	mc admin policy set "$(MINIO_HOSTNAME)" consoleAdmin user="$(CONSOLE_USERNAME)"
+
+# DO NOT USE THESE IN PRODUCTION !!
+# Salt to encrypt JWT payload
+export CONSOLE_PBKDF_PASSPHRASE=SECRET
+# Required to encrypt JWT payload
+export CONSOLE_PBKDF_SALT=SECRET
+# MinIO Endpoint
+export CONSOLE_MINIO_SERVER=$(MINIO_URL)
+console-server:
+	./console server
 
 # import the demo files
 FILES_DIR:=files

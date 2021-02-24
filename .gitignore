@@ -23,3 +23,6 @@ es_pid
 kibana.log
 kibana-7.10.1*
 cwl/output.json
+console
+console-linux-amd64
+data*
